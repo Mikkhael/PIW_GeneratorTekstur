@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generator Tekstur</title>
+
+<style>
+
+    #texture_canvas{
+        border: 1px solid black;
+    }
+
+</style>
+
+</head>
+<body>
+    
+    <section class="options">
+
+        <p class="option">
+            <span>Szerokość</span>
+            <input type="number" id="texture_x">
+        </p>
+        <p class="option">
+            <span>Wysokość</span>
+            <input type="number" id="texture_y">
+        </p>
+        <p class="option">
+            <span>Ilość kółek</span>
+            <input type="number" id="texture_count">
+        </p>
+        <p class="option">
+            <span>Minimalny promień</span>
+            <input type="number" id="texture_r_min">
+        </p>
+        <p class="option">
+            <span>Maksymalny promień</span>
+            <input type="number" id="texture_r_max">
+        </p>
+        <p class="option">
+            <span>Tekstura powtarzalna</span>
+            <input type="checkbox" id="texture_rep">
+        </p>
+        <fieldset class="palette_options">
+            <legend>Paleta Barw:</legend>
+            <section>
+                <p class="option">
+                    <span>Kolor Tła</span>
+                    <input type="color" id="texture_bg">
+                </p>
+                <p class="pallete_option">
+                    <span>Kolor 1</span>
+                    <input type="checkbox" id="texture_color1_use">
+                    <input type="color" id="texture_color1">
+                </p>
+                <p class="pallete_option">
+                    <span>Kolor 2</span>
+                    <input type="checkbox" id="texture_color2_use">
+                    <input type="color" id="texture_color2">
+                </p>
+                <p class="pallete_option">
+                    <span>Kolor 3</span>
+                    <input type="checkbox" id="texture_color3_use" >
+                    <input type="color" id="texture_color3">
+                </p>
+            </section>
+        </fieldset>
+        <p class="option">
+            <span>Seed</span>
+            <input type="checkbox" id="texture_seed_use">
+            <input type="text" id="texture_seed">
+        </p>
+        
+    <input type="button" value="GENERUJ" onclick="generate()">
+
+    <br>
+
+
+    <canvas id="texture_canvas">
+
+    </canvas >
+
+    </section>
+
+
+<script>
+
+const options = {};
+
+const options_elems = document.querySelectorAll('.option > input, .pallete_option > input');
+for(let option_elem of options_elems){
+    options[option_elem.id] = option_elem;
+    option_elem.addEventListener('change', (e) => {
+        update_options_from_ui();
+    })
+}
+
+for(let option_name in options){
+    if(option_name.endsWith('_use')){
+        const update_disabled = (e) => {
+            options[option_name.slice(0, -4)].disabled = !options[option_name].checked;
+        } 
+        options[option_name].addEventListener('change', update_disabled);
+        update_disabled();
+    }
+}
+
+
+const option_values = {
+    x: 0,
+    y: 0,
+
+    count: 0,
+    r_min: 0,
+    r_max: 0,
+
+    rep: false,
+
+    seed: undefined,
+
+    bg: '#000000',
+    colors: []
+};
+
+const canvas = document.querySelector('#texture_canvas');
+const ctx = canvas.getContext('2d');
+
+update_options_from_ui();
+
+
+function update_options_from_ui(){
+
+    const get_value_with_bound = (name, id, min, max) => {
+            
+        option_values[name] = +options[id].value || 0;
+        if(option_values[name] < min) option_values[name] = min;
+        if(option_values[name] > max) option_values[name] = max;
+
+        options[id].value = option_values[name];
+    }
+
+    get_value_with_bound('y', 'texture_y', 1, Infinity);
+    get_value_with_bound('x', 'texture_x', 1, Infinity);
+    get_value_with_bound('count', 'texture_count', 0, Infinity);
+    get_value_with_bound('r_min', 'texture_r_min', 0, Infinity);
+    get_value_with_bound('r_max', 'texture_r_max', +options['texture_r_min'].value, Infinity);
+
+    option_values.rep = options['texture_rep'].checked;
+    option_values.seed = options['texture_seed_use'].checked && options['texture_seed'].value;
+    
+    option_values.bg = options['texture_bg'].value;
+
+    option_values.colors = [];
+    for(let i=1; i<=3; i++){
+        if(options[`texture_color${i}_use`].checked){
+            option_values.colors.push(options[`texture_color${i}`].value);
+        }
+    }
+}
+
+
+function generate(){
+    canvas.width = option_values.x;
+    canvas.height = option_values.y;
+
+
+    ctx.fillStyle = option_values.bg;
+    ctx.fillRect(0,0, option_values.x, option_values.y);
+
+
+    const seed = option_values.seed || get_random_seed();
+    set_seed(seed);
+    options['texture_seed'].value = seed;
+
+    const draw_circle = (x, y, r, col) => {
+        ctx.fillStyle = col;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI*2);
+        ctx.fill();
+    }
+
+    for(let i = 0; i < option_values.count; i++){
+        const x = next_random(0, option_values.x);
+        const y = next_random(0, option_values.y);
+        const r = next_random(option_values.r_min, option_values.r_max);
+        const col_i = next_random(1, option_values.colors.length + 1);
+        const col = col_i == 0 ? '#000000' : option_values.colors[col_i-1];
+
+        draw_circle(x, y, r, col);
+        if(option_values.rep){
+            draw_circle(x + option_values.x, y, r, col);
+            draw_circle(x - option_values.x, y, r, col);
+            draw_circle(x + option_values.x, y + option_values.y, r, col);
+            draw_circle(x - option_values.x, y + option_values.y, r, col);
+            draw_circle(x + option_values.x, y - option_values.y, r, col);
+            draw_circle(x - option_values.x, y - option_values.y, r, col);
+            draw_circle(x, y + option_values.y, r, col);
+            draw_circle(x, y - option_values.y, r, col);
+        }
+    }
+
+}
+
+/// Random 
+
+function sfc32(a, b, c, d) {
+    return function() {
+      a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0; 
+      var t = (a + b) | 0;
+      a = b ^ b >>> 9;
+      b = c + (c << 3) | 0;
+      c = (c << 21 | c >>> 11);
+      d = d + 1 | 0;
+      t = t + d | 0;
+      c = c + t | 0;
+      return (t >>> 0) / 4294967296;
+    }
+}
+
+let rand =  sfc32(0x9E3779B9, 0x243F6A88, 0xB7E15162, 0);
+
+function set_seed(seed){
+    rand =  sfc32(0x9E3779B9, 0x243F6A88, 0xB7E15162, seed);
+}
+
+function get_random_seed(){
+    return Math.floor(Math.random() * 4294967296);
+}
+
+function next_random(min, max){
+    if(min > max) return max;
+    const res =  rand() * (max - min) + min;
+    return Math.floor(res);
+
+}
+
+
+
+
+</script>
+
+</body>
+</html>

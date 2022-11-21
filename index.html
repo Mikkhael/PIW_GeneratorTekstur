@@ -54,7 +54,14 @@
                     <span>Kolor Tła</span>
                     <input type="color" id="texture_bg">
                 </p>
-                <p class="pallete_option">
+                <p class="option">
+                    <span>Ilość kolorów</span>
+                    <input type="number" id="texture_palette_count">
+                </p>
+                <section class="" id="palette">
+
+                </section>
+                <!-- <p class="pallete_option">
                     <span>Kolor 1</span>
                     <input type="checkbox" id="texture_color1_use">
                     <input type="color" id="texture_color1">
@@ -68,7 +75,7 @@
                     <span>Kolor 3</span>
                     <input type="checkbox" id="texture_color3_use" >
                     <input type="color" id="texture_color3">
-                </p>
+                </p> -->
             </section>
         </fieldset>
         <p class="option">
@@ -76,22 +83,25 @@
             <input type="checkbox" id="texture_seed_use">
             <input type="text" id="texture_seed">
         </p>
-        
-    <input type="button" value="GENERUJ" onclick="generate()">
-
-    <br>
-
-
-    <canvas id="texture_canvas">
-
-    </canvas >
 
     </section>
+        
+
+    <section>
+        <input type="button" value="GENERUJ" onclick="generate()">
+        <input type="button" value="POBIERZ" onclick="download_image()">
+        <br>
+        <canvas id="texture_canvas">
+        </canvas >
+    </section>
+
+ 
 
 
 <script>
 
 const options = {};
+
 
 const options_elems = document.querySelectorAll('.option > input, .pallete_option > input');
 for(let option_elem of options_elems){
@@ -110,6 +120,31 @@ for(let option_name in options){
         update_disabled();
     }
 }
+
+document.querySelector('#texture_palette_count').addEventListener('change', e => {
+    generate_palette_inputs();
+});
+
+function generate_palette_inputs(){
+    let count = +document.querySelector('#texture_palette_count').value || 1;
+    if(count < 1) count = 1;
+
+    const palette_section = document.querySelector('#palette');
+    palette_section.innerHTML = "";
+
+    for(let i=1; i<=count; i++){
+        const toggle_use = `document.querySelector('#texture_color${i}').disabled = !this.checked;`;
+        palette_section.innerHTML += `
+            <p class="pallete_option">
+                <span>Kolor ${i}</span>
+                <input type="checkbox" id="texture_color${i}_use" checked onchange="update_options_from_ui();${toggle_use}">
+                <input type="color" id="texture_color${i}" onchange="update_options_from_ui();">
+            </p>
+        `;
+    }
+}
+
+generate_palette_inputs();
 
 
 const option_values = {
@@ -157,9 +192,12 @@ function update_options_from_ui(){
     option_values.bg = options['texture_bg'].value;
 
     option_values.colors = [];
-    for(let i=1; i<=3; i++){
-        if(options[`texture_color${i}_use`].checked){
-            option_values.colors.push(options[`texture_color${i}`].value);
+    const colors_elems = document.querySelectorAll('.pallete_option > input[type="color"]');
+    const colors_elems_use = document.querySelectorAll('.pallete_option > input[type="checkbox"]');
+    // console.log(colors_elems, colors_elems_use);
+    for(let i=0; i<colors_elems.length; i++){
+        if(colors_elems_use[i].checked){
+            option_values.colors.push(colors_elems[i].value);
         }
     }
 }
@@ -240,7 +278,12 @@ function next_random(min, max){
 
 }
 
-
+function download_image(){
+    const a = document.createElement('a');
+    a.download = 'tekstura_' + options.texture_seed.value + '.png';
+    a.href = canvas.toDataURL();
+    a.click();
+}
 
 
 </script>

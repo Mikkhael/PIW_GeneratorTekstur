@@ -67,14 +67,14 @@
                 <input type="number" id="texel_y">
             </p>
             <p class="option">
-                <span>Ilość kopii wzoru</span>
+                <span>Liczba kopii wzoru</span>
                 <input type="number" id="texel_count">
             </p>
             <fieldset class="palette_options">
                 <legend>Paleta Barw</legend>
                 <section>
                     <p class="option">
-                        <span>Ilość kolorów</span>
+                        <span>Liczba kolorów</span>
                         <input type="number" id="texture_palette_count">
                     </p>
                     <section class="" id="palette">
@@ -267,8 +267,6 @@ function draw_next_wzor(texel){
     temp_ctx.drawImage(wzor_ctx.canvas, 0, 0);
     temp_ctx.globalCompositeOperation = 'source-in';
     temp_ctx.fillRect(0,0,texel.wzor.x, texel.wzor.y);
-
-    const data = temp_ctx.getImageData(0,0,texel.wzor.x, texel.wzor.y);
 
     if(texel.rep){
         for(let offx of [-texel.x, 0, texel.x]){

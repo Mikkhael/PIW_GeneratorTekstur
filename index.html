@@ -8,10 +8,19 @@
 
 <style>
 
-    #texture_canvas{
-        border: 1px solid black;
+    canvas{
+        /* border: 1px solid black; */
+        background-color: #333;
+        border: dotted 1px gray;
     }
 
+    #wzor_canvas{
+        min-height: 100px;
+    }
+
+    #texture_canvas{
+        max-width: 100%;
+    }
 </style>
 
 </head>
@@ -23,76 +32,92 @@
 
     <section class="options">
 
-        <p class="option">
-            <span>Szerokość</span>
-            <input type="number" id="texture_x">
-        </p>
-        <p class="option">
-            <span>Wysokość</span>
-            <input type="number" id="texture_y">
-        </p>
-        <p class="option">
-            <span>Ilość kółek</span>
-            <input type="number" id="texture_count">
-        </p>
-        <p class="option">
-            <span>Minimalny promień</span>
-            <input type="number" id="texture_r_min">
-        </p>
-        <p class="option">
-            <span>Maksymalny promień</span>
-            <input type="number" id="texture_r_max">
-        </p>
-        <p class="option">
-            <span>Tekstura powtarzalna</span>
-            <input type="checkbox" id="texture_rep">
-        </p>
-        <fieldset class="palette_options">
-            <legend>Paleta Barw:</legend>
-            <section>
-                <p class="option">
-                    <span>Kolor Tła</span>
-                    <input type="color" id="texture_bg">
-                </p>
-                <p class="option">
-                    <span>Ilość kolorów</span>
-                    <input type="number" id="texture_palette_count">
-                </p>
-                <section class="" id="palette">
-
-                </section>
-                <!-- <p class="pallete_option">
-                    <span>Kolor 1</span>
-                    <input type="checkbox" id="texture_color1_use">
-                    <input type="color" id="texture_color1">
-                </p>
-                <p class="pallete_option">
-                    <span>Kolor 2</span>
-                    <input type="checkbox" id="texture_color2_use">
-                    <input type="color" id="texture_color2">
-                </p>
-                <p class="pallete_option">
-                    <span>Kolor 3</span>
-                    <input type="checkbox" id="texture_color3_use" >
-                    <input type="color" id="texture_color3">
-                </p> -->
-            </section>
+        <fieldset class="wzor_options">
+            <legend>Opcje Wzoru</legend>
+            <p class="option">
+                <span>Rodzaj Wzoru</span>
+                <select name="" id="wzor_type">
+                    <option value="circ">Koło</option>
+                    <option value="sqre">Kwadrat</option>
+                    <option value="trig">Trójkąt</option>
+                    <option value="file">Własny</option>
+                </select>
+                <span>Własny wzór:</span>
+                <input type="file" name="" id="wzor_file" accept="image/*">
+            </p>
+            <p class="option">
+                <span>Szerokość</span>
+                <input type="number" id="wzor_x">
+            </p>
+            <p class="option">
+                <span>Wysokość</span>
+                <input type="number" id="wzor_y">
+            </p>
+            <canvas id="wzor_canvas"> </canvas>
         </fieldset>
+        
+        <fieldset class="texel_options">
+            <legend>Opcje Teksela</legend>
+            <p class="option">
+                <span>Szerokość</span>
+                <input type="number" id="texel_x">
+            </p>
+            <p class="option">
+                <span>Wysokość</span>
+                <input type="number" id="texel_y">
+            </p>
+            <p class="option">
+                <span>Ilość kopii wzoru</span>
+                <input type="number" id="texel_count">
+            </p>
+            <fieldset class="palette_options">
+                <legend>Paleta Barw</legend>
+                <section>
+                    <p class="option">
+                        <span>Ilość kolorów</span>
+                        <input type="number" id="texture_palette_count">
+                    </p>
+                    <section class="" id="palette">
+                    </section>
+                    <!-- <p class="pallete_option">
+                        <span>Kolor 1</span>
+                        <input type="checkbox" id="texture_color1_use">
+                        <input type="color" id="texture_color1">
+                    </p> -->
+                </section>
+            </fieldset>
+        </fieldset>
+        
+        <fieldset class="texture_options">
+            <legend>Opcje Tekstury</legend>
+            <p class="option">
+                <span>Szerokość</span>
+                <input type="number" id="texture_x">
+            </p>
+            <p class="option">
+                <span>Wysokość</span>
+                <input type="number" id="texture_y">
+            </p>
+        </fieldset>
+
+    </section>
+        
+
+    <section>
+        
         <p class="option">
             <span>Seed</span>
             <input type="checkbox" id="texture_seed_use">
             <input type="text" id="texture_seed">
         </p>
 
-    </section>
-        
-
-    <section>
-        <input type="button" value="GENERUJ" onclick="generate()">
-        <input type="button" value="POBIERZ" onclick="download_image()">
+        <input type="button" value="GENERUJ" onclick="generate_all()">
+        <input type="button" value="POBIERZ TEKSEL" onclick="download_image(texel_ctx)">
+        <input type="button" value="POBIERZ TEKSTURĘ" onclick="download_image(texture_ctx)">
         <br>
-        <canvas id="texture_canvas">
-        </canvas >
+        <canvas id="texel_canvas"> </canvas>
+        <br>
+        <canvas id="texture_canvas"> </canvas>
     </section>
 
  
@@ -100,36 +125,190 @@
 
 <script>
 
-const options = {};
-
-
-const options_elems = document.querySelectorAll('.option > input, .pallete_option > input');
-for(let option_elem of options_elems){
-    options[option_elem.id] = option_elem;
-    option_elem.addEventListener('change', (e) => {
-        update_options_from_ui();
-    })
+function E(id) {return document.getElementById(id);}
+function V(id) {return document.getElementById(id).value;}
+function clamp(value, min, max) {
+    value = +value;
+    if(value < min){
+        return min;
+    }
+    return value > max ? max : value;
 }
 
-for(let option_name in options){
-    if(option_name.endsWith('_use')){
-        const update_disabled = (e) => {
-            options[option_name.slice(0, -4)].disabled = !options[option_name].checked;
-        } 
-        options[option_name].addEventListener('change', update_disabled);
-        update_disabled();
+const wzor_ctx = E('wzor_canvas').getContext("2d");
+const texel_ctx = E('texel_canvas').getContext("2d");
+const texture_ctx = E('texture_canvas').getContext("2d");
+
+const temp_ctx = document.createElement('canvas').getContext("2d");
+// const temp_ctx = texture_ctx;
+
+wzor_ctx.imageSmoothingEnabled = false;
+
+function binarize(ctx){
+    const data = ctx.getImageData(0,0,ctx.canvas.width, ctx.canvas.height);
+    const res = data.data;
+    for(let i=0; i<data.data.length; i+=4){
+        const v = data.data[i] > 0 ? 255 : 0;
+        data.data[i + 0] = v;
+        data.data[i + 1] = v;
+        data.data[i + 2] = v;
+        data.data[i + 3] = v;
+    }
+    ctx.putImageData(data, 0, 0);
+    return data.data;
+}
+
+let current_wzor = {};
+
+function generate_wzor(){
+    const wzor = {
+        x: clamp(V('wzor_x'), 1, Infinity),
+        y: clamp(V('wzor_y'), 1, Infinity),
+        type: V('wzor_type')
+    };
+
+    wzor_ctx.canvas.width  = wzor.x;
+    wzor_ctx.canvas.height = wzor.y;
+    wzor_ctx.fillStyle = "#000";
+    wzor_ctx.fillRect(0,0,wzor.x, wzor.y);
+    wzor_ctx.fillStyle = "#fff";
+    if(wzor.type === 'circ'){
+        wzor_ctx.beginPath();
+        wzor_ctx.arc(wzor.x/2, wzor.y/2, Math.min(wzor.x, wzor.y)/2, 0, Math.PI * 2);
+        wzor_ctx.fill();
+    }
+    if(wzor.type === 'sqre'){
+        wzor_ctx.fillRect(0,0,wzor.x, wzor.y);
+    }
+    if(wzor.type === 'trig'){
+        wzor_ctx.beginPath();
+        wzor_ctx.moveTo(0,wzor.y);
+        wzor_ctx.lineTo(wzor.x/2,0);
+        wzor_ctx.lineTo(wzor.x,wzor.y);
+        wzor_ctx.closePath();
+        wzor_ctx.fill();
+    }
+    if(wzor.type === 'file'){
+        let img = load_file();
+        img.addEventListener('load', () => {
+            wzor_ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, wzor.x, wzor.y);
+            wzor.data = binarize(wzor_ctx);
+            current_wzor = wzor;
+        });
+    }
+    wzor.data = binarize(wzor_ctx);
+    return current_wzor = wzor;
+}
+
+
+let file_url = null;
+function load_file(){
+    if(file_url){
+        URL.revokeObjectURL(file_url);
+        file_url = null;
+    }
+    const img = new Image();
+
+    let file = E('wzor_file').files[0];
+    if(file){
+        img.src = URL.createObjectURL(file);
+    }
+    return img;
+}
+
+function generate_texel(wzor = current_wzor){
+    const texel = {
+        x: clamp(V('texel_x'), 1, Infinity),
+        y: clamp(V('texel_y'), 1, Infinity),
+        count: clamp(V('texel_count'), 0, Infinity),
+        rep: true,
+        wzor,
+    };
+    
+    texel.colors = [];
+    const colors_elems = document.querySelectorAll('.pallete_option > input[type="color"]');
+    const colors_elems_use = document.querySelectorAll('.pallete_option > input[type="checkbox"]');
+    // console.log(colors_elems, colors_elems_use);
+    for(let i=0; i<colors_elems.length; i++){
+        if(colors_elems_use[i].checked){
+            texel.colors.push(colors_elems[i].value);
+        }
+    }
+
+    temp_ctx.canvas.width  = wzor.x;
+    temp_ctx.canvas.height = wzor.y;
+    temp_ctx.clearRect(0, 0, wzor.x, wzor.y);
+    texel_ctx.canvas.width  = texel.x;
+    texel_ctx.canvas.height = texel.y;
+    texel_ctx.clearRect(0, 0, texel.x, texel.y);
+
+    const seed = (E('texture_seed_use').checked && clamp(V('texture_seed'), 0, 4294967296)) || get_random_seed();
+    set_seed(seed);
+    E('texture_seed').value = seed;
+
+    for(let i=0; i<texel.count; i++){
+        draw_next_wzor(texel);
+    }
+
+    return texel;
+}
+
+function draw_next_wzor(texel){
+    
+    const x = next_random(0, texel.x);
+    const y = next_random(0, texel.y);
+    const col_i = next_random(0, texel.colors.length);
+    const col = texel.colors[col_i];
+
+    temp_ctx.fillStyle = col;
+
+    temp_ctx.clearRect(0, 0, texel.wzor.x, texel.wzor.y);
+    temp_ctx.globalCompositeOperation = 'source-over';
+    temp_ctx.drawImage(wzor_ctx.canvas, 0, 0);
+    temp_ctx.globalCompositeOperation = 'source-in';
+    temp_ctx.fillRect(0,0,texel.wzor.x, texel.wzor.y);
+
+    const data = temp_ctx.getImageData(0,0,texel.wzor.x, texel.wzor.y);
+
+    if(texel.rep){
+        for(let offx of [-texel.x, 0, texel.x]){
+            for(let offy of [-texel.y, 0, texel.y]){
+                texel_ctx.drawImage(temp_ctx.canvas, x + offx, y + offy);
+            }
+        }
+    }else{
+        texel_ctx.drawImage(temp_ctx.canvas, x, y);
     }
 }
 
-document.querySelector('#texture_palette_count').addEventListener('change', e => {
-    generate_palette_inputs();
-});
+function generate_texture(texel){
+    const texture =  {
+        x: clamp(V('texture_x'), 1, Infinity),
+        y: clamp(V('texture_y'), 1, Infinity),
+        texel,
+    };
+
+    texture_ctx.canvas.width  = texture.x;
+    texture_ctx.canvas.height = texture.y;
+    texture_ctx.clearRect(0,0, texture.x, texture.y);
+
+    for(let xoff = 0; xoff < texture.x; xoff += texel.x){
+        for(let yoff = 0; yoff < texture.y; yoff += texel.y){
+            texture_ctx.drawImage(texel_ctx.canvas, xoff, yoff);
+        }
+    }
+}
+
+function generate_all(){
+    const texel = generate_texel();
+    generate_texture(texel);
+}
 
 function generate_palette_inputs(){
-    let count = +document.querySelector('#texture_palette_count').value || 1;
+    let count = +V('texture_palette_count') || 1;
     if(count < 1) count = 1;
 
-    const palette_section = document.querySelector('#palette');
+    const palette_section = E('palette');
     palette_section.innerHTML = "";
 
     for(let i=1; i<=count; i++){
@@ -137,113 +316,32 @@ function generate_palette_inputs(){
         palette_section.innerHTML += `
             <p class="pallete_option">
                 <span>Kolor ${i}</span>
-                <input type="checkbox" id="texture_color${i}_use" checked onchange="update_options_from_ui();${toggle_use}">
-                <input type="color" id="texture_color${i}" onchange="update_options_from_ui();">
+                <input type="checkbox" id="texture_color${i}_use" checked onchange="${toggle_use}">
+                <input type="color" id="texture_color${i}">
             </p>
         `;
     }
 }
 
+E('texture_seed_use').addEventListener('change', function(e) {E('texture_seed').disabled = !this.checked;});
+
+E('wzor_type').addEventListener('change', generate_wzor);
+E('wzor_x').addEventListener('change', generate_wzor);
+E('wzor_y').addEventListener('change', generate_wzor);
+E('wzor_file').addEventListener('change', generate_wzor);
+E('texture_palette_count').addEventListener('change', generate_palette_inputs);
+generate_wzor();
 generate_palette_inputs();
 
 
-const option_values = {
-    x: 0,
-    y: 0,
-
-    count: 0,
-    r_min: 0,
-    r_max: 0,
-
-    rep: false,
-
-    seed: undefined,
-
-    bg: '#000000',
-    colors: []
-};
-
-const canvas = document.querySelector('#texture_canvas');
-const ctx = canvas.getContext('2d');
-
-update_options_from_ui();
-
-
-function update_options_from_ui(){
-
-    const get_value_with_bound = (name, id, min, max) => {
-            
-        option_values[name] = +options[id].value || 0;
-        if(option_values[name] < min) option_values[name] = min;
-        if(option_values[name] > max) option_values[name] = max;
-
-        options[id].value = option_values[name];
-    }
-
-    get_value_with_bound('y', 'texture_y', 1, Infinity);
-    get_value_with_bound('x', 'texture_x', 1, Infinity);
-    get_value_with_bound('count', 'texture_count', 0, Infinity);
-    get_value_with_bound('r_min', 'texture_r_min', 0, Infinity);
-    get_value_with_bound('r_max', 'texture_r_max', +options['texture_r_min'].value, Infinity);
-
-    option_values.rep = options['texture_rep'].checked;
-    option_values.seed = options['texture_seed_use'].checked && options['texture_seed'].value;
-    
-    option_values.bg = options['texture_bg'].value;
-
-    option_values.colors = [];
-    const colors_elems = document.querySelectorAll('.pallete_option > input[type="color"]');
-    const colors_elems_use = document.querySelectorAll('.pallete_option > input[type="checkbox"]');
-    // console.log(colors_elems, colors_elems_use);
-    for(let i=0; i<colors_elems.length; i++){
-        if(colors_elems_use[i].checked){
-            option_values.colors.push(colors_elems[i].value);
-        }
-    }
+function download_image(ctx){
+    const a = document.createElement('a');
+    a.download = 'tekstura.png';
+    a.href = ctx.canvas.toDataURL();
+    a.click();
 }
 
 
-function generate(){
-    canvas.width = option_values.x;
-    canvas.height = option_values.y;
-
-
-    ctx.fillStyle = option_values.bg;
-    ctx.fillRect(0,0, option_values.x, option_values.y);
-
-
-    const seed = option_values.seed || get_random_seed();
-    set_seed(seed);
-    options['texture_seed'].value = seed;
-
-    const draw_circle = (x, y, r, col) => {
-        ctx.fillStyle = col;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI*2);
-        ctx.fill();
-    }
-
-    for(let i = 0; i < option_values.count; i++){
-        const x = next_random(0, option_values.x);
-        const y = next_random(0, option_values.y);
-        const r = next_random(option_values.r_min, option_values.r_max);
-        const col_i = next_random(1, option_values.colors.length + 1);
-        const col = col_i == 0 ? '#000000' : option_values.colors[col_i-1];
-
-        draw_circle(x, y, r, col);
-        if(option_values.rep){
-            draw_circle(x + option_values.x, y, r, col);
-            draw_circle(x - option_values.x, y, r, col);
-            draw_circle(x + option_values.x, y + option_values.y, r, col);
-            draw_circle(x - option_values.x, y + option_values.y, r, col);
-            draw_circle(x + option_values.x, y - option_values.y, r, col);
-            draw_circle(x - option_values.x, y - option_values.y, r, col);
-            draw_circle(x, y + option_values.y, r, col);
-            draw_circle(x, y - option_values.y, r, col);
-        }
-    }
-
-}
 
 /// Random 
 
@@ -277,14 +375,6 @@ function next_random(min, max){
     return Math.floor(res);
 
 }
-
-function download_image(){
-    const a = document.createElement('a');
-    a.download = 'tekstura_' + options.texture_seed.value + '.png';
-    a.href = canvas.toDataURL();
-    a.click();
-}
-
 
 </script>
 
